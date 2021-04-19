@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  labels:
+    app: publish
+  name: publish-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: ambassador
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api
+            backend:
+              serviceName: publish-service-cluster-ip
+              servicePort: OVERRIDE_BY_OVERLAYS

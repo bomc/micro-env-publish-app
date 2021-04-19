@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: publish-service-ambassador
+  namespace: default
+  labels:
+    app: publish
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind:  Mapping
+      name:  ambassador-publish-mapping-prod
+      #
+      # see https://www.getambassador.io/docs/edge-stack/latest/topics/using/rewrites/
+      # http://10.111.121.174/bomc/api/metadata/annotation-validation
+      # would effectively be written to
+      # http://10.111.121.174/api/metadata/annotation-validation
+      #
+      prefix: /bomc/
+      rewrite: /
+      service: publish-service-ambassador:8181
+spec:
+  selector:
+    app: publish
+  ports:
+  - protocol: TCP
+    name: OVERRIDE_BY_OVERLAYS
+    port: OVERRIDE_BY_OVERLAYS
+    targetPort: OVERRIDE_BY_OVERLAYS
+  type: ClusterIP

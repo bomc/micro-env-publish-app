@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: bomc-publish-prod
+bases:
+- ./../../base/
+commonLabels:
+  environment: prod
+images:
+- name: localhost:5000/bomc/publish
+  newName: localhost:5000/bomc/publish
+  newTag: v1.0.0-21-g25f18fa
+patchesStrategicMerge:
+- app-config-map.yaml
+- init-container-wait-for-consumer-deploy.yaml
+patchesJson6902:
+- path: namespace-patch.json
+  target:
+    kind: Namespace
+    name: default
+    version: v1
+- path: deployment-config-patch.json
+  target:
+    group: apps
+    kind: Deployment
+    name: publisher
+    version: v1
+- path: service-port-patch.json
+  target:
+    kind: Service
+#    name: publish-service-cluster-ip
+    name: publish-service-ambassador
+    version: v1
+#- path: ingress-ambassador-host-patch.json
+#  target:
+#    kind: Ingress
+#    name: publish-ingress
+#    group: networking.k8s.io
+#    version: v1beta1

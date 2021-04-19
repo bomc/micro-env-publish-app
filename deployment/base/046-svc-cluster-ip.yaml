@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: publish-service-cluster-ip
+  namespace: default
+  labels:
+    app: publish
+spec:
+  selector:
+    app: publish
+  ports:
+  - protocol: TCP
+    name: OVERRIDE_BY_OVERLAYS
+    port: OVERRIDE_BY_OVERLAYS
+    targetPort: OVERRIDE_BY_OVERLAYS
+  # The ClusterIP is the default type, no need to set explicitly.
+  type: ClusterIP
