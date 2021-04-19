@@ -1,4 +1,4 @@
-# microservice-pub
+# micro-env-publish-app
 ## 1. Git
 ```bash
 * git init
@@ -76,7 +76,7 @@ choco install minikube --version 1.8.1
 
 minikube start
 
-minikube start --vm-driver=virtualbox --cpus 2 --memory 10240 --disk-size=25GB
+minikube start --vm-driver=virtualbox --cpus 3 --memory 10240 --disk-size=25GB
 
 minikube addons list
 
