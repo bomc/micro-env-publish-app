@@ -920,7 +920,7 @@ kubectl get service ambassador --output='jsonpath="{.spec.ports[0].nodePort}"' -
 
 ```BASH
 # Use the link to open Ambassador Diagnostic Overview in a browser.
-http://192.168.99.112:30237/ambassador/v0/diag
+http://192.168.99.127:31442/ambassador/v0/diag
 ```
 
 ### 16.3 Create a LoadBalancer service to route the traffic 
