@@ -45,6 +45,9 @@ Invoke with given address from above:
 * http://192.168.99.104:30194/webjars/swagger-ui/index.html?configUrl=/api-docs/swagger-config#/
 
 ## 4. REST urls
+
+* curl -X POST "http://10.111.50.176/bomc/api/metadata/annotation-validation" -H  "accept: application/json" -H  "X-B3-TraceId: 82f198ee56343ba864fe8b2a57d3eff7" -H  "X-B3-ParentSpanId: 11e3ac9a4f6e3b90" -H  "Content-Type: application/json" -d "{\"id\":\"42\",\"name\":\"bomc\"}"
+
 * curl -X POST "http://localhost:8081/api/metadata/annotation-validation" -H  "accept: application/json" -H  "X-B3-TraceId: 82f198ee56343ba864fe8b2a57d3eff7" -H  "X-B3-ParentSpanId: 11e3ac9a4f6e3b90" -H  "Content-Type: application/json" -d "{\"id\":\"42\",\"name\":\"bomc\"}"
 
 
