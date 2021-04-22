@@ -83,6 +83,8 @@ minikube start --vm-driver=virtualbox --cpus 3 --memory 10240 --disk-size=25GB
 
 minikube addons list
 
+minikube addons enable ambassador
+
 minikube addons enable metrics-server
 
 # Using 'top' after enabling metrics-server. 
