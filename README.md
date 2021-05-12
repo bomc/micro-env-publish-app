@@ -1081,24 +1081,99 @@ Check it with a curl against the publish-app
 curl -v -X POST "http://10.111.75.249/bomc/api/metadata/annotation-validation" -H "accept: application/json" -H "X-B3-TraceId: 82f198ee56343ba864fe8b2a57d3eff7" -H "X-B3-ParentSpanId: 11e3ac9a4f6e3b90" -H "Content-Type: application/json" -d "{\"id\":\"42\",\"name\":\"bomc\"}"
 ```
 
-  
-minikube start --vm-driver=virtualbox --cpus 2 --memory 10240 --disk-size=25GB
+### 16.6 Enable Ambassador as Minikube addon
+It is also possible to deploy Ambassador (Community) as Minikube addon.
+Checked with Minikube v1.19.0
 
-minikube addons list
+```bash
+minikube addons enable ambassador
+```
 
-minikube addons enable ingress
+## 17 Tekton
+Tekton provides a set of open source Kubernetes resources to build and run CI/CD pipelines, such as parameterized tasks, inputs and outputs, as well as runtime definitions.
 
-minikube service list
+### 17.1 Registry
+One of the things that will be needed to run Tekton locally is how it will be interacting with a locally running docker registry. With minikube, enable the local registry capabilities by running the minikube registry addon. 
+Run the following:
 
-@FOR /f "tokens=*" %i IN ('minikube -p minikube docker-env') DO @%i
+```bash
+minikube start --vm-driver=virtualbox --cpus 3 --memory 10240 --disk-size=25GB --insecure-registry=registry.kube-system.svc.cluster.local:80
 
-minikube dashboard
+minikube addons enable registry
+```
 
-kubectl cluster-info
+> This command starts minikube to allow insecure registry for the internally running registry that is enabled.
 
-eval $(minikube docker-env)
+If this successfully works, a registry is deployed into the kube-system namespace and a service will be defined.
 
-minikube tunnel --cleanup
+```bash
+kubectl get svc registry -n kube-system -o yaml
+```
+
+This will make an insecure registry available within the cluster at `registry.kube-system.svc.cluster.local` on port 80. This can then reference this domain from Tekton pipelines.
+
+### 17.2 Install
+```bash
+# Show for current releases.
+https://github.com/tektoncd/pipeline/releases
+
+# Install
+kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.23.0/release.yaml
+```
+This command will create a tekton-pipelines namespace, as well as other resources to finalize the Tekton installation. With that namespace in mind, easily track the progress of the installation using the command below:
+
+
+
+```bash
+kubectl get pods --namespace tekton-pipelines --watch
+```
+
+### 17.3 Tekton CLI
+```bash
+# Get tekton cli.
+https://github.com/tektoncd/cli/releases
+```
+
+### 17.4 Tekton dashboard
+```bash
+kubectl --namespace tekton-pipelines port-forward svc/tekton-dashboard 9097:9097
+```
+
+Browse http://localhost:9097 to access your Dashboard.
+
+#### 17.4.1 Using an Ingress rule
+see: `https://github.com/tektoncd/dashboard/blob/main/docs/install.md`
+
+A more advanced solution is to expose the Dashboard through an Ingress rule.
+
+This way the Dashboard can be accessed as a regular website without requiring kubectl.
+
+Assuming you have an ingress controller up and running in your cluster, and that tekton-pipelines is the install namespace for the Dashboard, run the following command to create the Ingress resource:
+
+# replace DASHBOARD_URL with the hostname you want for your dashboard
+# the hostname should be setup to point to your ingress controller
+DASHBOARD_URL=dashboard.domain.tld
+kubectl apply -n tekton-pipelines -f - <<EOF
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: tekton-dashboard
+  namespace: tekton-pipelines
+spec:
+  rules:
+  - host: $DASHBOARD_URL
+    http:
+      paths:
+      - backend:
+          serviceName: tekton-dashboard
+          servicePort: 9097
+EOF
+
+You can now access the Dashboard UI at http(s)://dashboard.domain.tld in your browser (assuming the host configured in the ingress is dashboard.domain.tld)
+
+
+
+
 
 
 
