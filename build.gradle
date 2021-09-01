@@ -1,7 +1,7 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
-	id 'org.springframework.boot' version '2.4.3'
+	id 'org.springframework.boot' version '2.4.10'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
 	id 'java'
 	// see https://github.com/spasam/spring-boot-build-info
@@ -9,6 +9,8 @@ plugins {
 	
 	id 'com.google.cloud.tools.jib' version '3.0.0'
 	id 'com.palantir.git-version' version '0.12.3'
+    
+	id 'au.com.dius.pact' version '4.2.9'
 }
 
 group = 'de.bomc.poc'
@@ -20,7 +22,7 @@ sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
 
 apply plugin: 'java'
-apply plugin: 'maven'
+//apply plugin: 'maven'
 
 configurations {
 	compileOnly {
@@ -60,7 +62,9 @@ dependencies {
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	annotationProcessor 'org.projectlombok:lombok'
 	
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation('org.springframework.boot:spring-boot-starter-test') {
+		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+	}
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'org.assertj:assertj-core:3.11.1'
 	testImplementation 'org.mockito:mockito-junit-jupiter'
@@ -77,6 +81,11 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	
+	//testImplementation 'com.github.tomakehurst:wiremock:2.27.2'
+	//testImplementation 'au.com.dius.pact.consumer:java8:4.2.9'
+	testImplementation 'au.com.dius.pact.provider:junit5:4.2.9'
+	testImplementation 'au.com.dius.pact.provider:junit5Spring:4.2.9'
 }
 
 dependencyManagement {
@@ -114,6 +123,31 @@ task showVersion {
     }
 }
 
+//pact {
+//	broker {
+//		pactBrokerUrl = 'http://pact-broker.d01.blkb.ch'
+//		pactBrokerUsername = ''
+//		pactBrokerPassword = ''
+//	}
+//	
+//	publish {
+//		pactBrokerUrl = 'http://pact-broker.d01.blkb.ch'
+//	}
+//	
+//	serviceProviders {
+//		myProvider {
+//			startProviderTask = startProvider
+//			terminateProviderTask = stopProvider
+//			fromPactBroker {
+//			}
+//		}
+//	}
+//}
+
+springBoot {
+	buildInfo()
+}
+
 jib {
     from {
     	// Base image
@@ -134,7 +168,7 @@ jib {
         // Add environment
         environment = [IMAGE_VERSION: project.version]
         // The application will be limited to 360mb of memory
-        jvmFlags = ['-Xms420m', '-Xmx420m', '-Dspring.profiles.active=prod']
+        jvmFlags = ['-XX:MaxRAMPercentage=75', '-XX:+UseContainerSupport', '-Dspring.profiles.active=prod']
         // This generates the following entrypoint line in the Dockerfile.
         // "Entrypoint": [java, -Xms360m, -Xmx360m, -Dspring.profiles.active=k8s, -cp, /app/resources:/app/classes:/app/libs/*, de.bomc.poc.publish.PublishApplication]
         

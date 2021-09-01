@@ -75,7 +75,7 @@ If running with ingress:
 ## 6. Minikube - docker
 ```bash
 # Install with chocolatery, version is optional.
-choco install minikube --version 1.8.1
+choco install minikube --version 1.19.0
 
 minikube start
 
@@ -91,9 +91,22 @@ minikube addons enable metrics-server
 kubectl top pods -n bomc-consumer
 
 minikube addons enable ingress
+
+minikube ssh -- cat /etc/hosts
 ```
 
-### 6.1 GIT bash
+### 6.1 Minikube internal registry
+```bash
+# Used docker registry HTTP API V2
+# https://docs.docker.com/registry/spec/api/
+curl http://192.168.99.145:5000/v2/_catalog
+
+curl -X GET http://192.168.99.145:5000/v2/bomc/consumer/tags/list
+
+curl -X GET http://192.168.99.145:5000/v2/containers/json
+```
+
+### 6.2 GIT bash
 ```bash
 # Add this line to .bash_profile if you want to use minikube's daemon by default (or if you do not want to set this every time you open a new terminal).
 eval $(minikube docker-env)
@@ -101,7 +114,7 @@ eval $(minikube docker-env)
 eval $(docker-machine env -u)
 ```
 
-### 6.2 Windows cmd
+### 6.3 Windows cmd
 ```bash
 # List env variables
 minikube docker-env
@@ -117,7 +130,7 @@ minikube ssh
 docker ps
 ```
 
-### 6.3 Delete Minikube (Windows)
+### 6.4 Delete Minikube (Windows)
 ```bash
 minikube stop & REM stops the VM
 ```
@@ -145,7 +158,7 @@ choco uninstall kubectl
 
 Then delete the .minikube and .kube directories, see above.
 
-### 6.4 Docker commands
+### 6.5 Docker commands
 ####Removing untagged images
 ```bash
 docker image rm $(docker images | grep "^<none>" | awk "{print $3}")
@@ -164,6 +177,12 @@ gradle jibDockerBuild
 
 ```bash
 gradle build
+```
+
+###7.2 Switch build to use Gradle 7.2 by updating the wrapper:
+
+```bash
+./gradlew wrapper --gradle-version=7.2
 ```
 
 ### 7.2 Dive
@@ -349,6 +368,14 @@ kubectl get pod publisher-597764857f-vfpn8 -n bomc-publish -o json | jq '.status
 kubectl get pod publisher-597764857f-vfpn8 -n bomc-publish -o json | jq '.status.podIP' -r
 ```
 
+```bash
+# Get json with jq
+kubectl get service -o json| jq -r .items[0].metadata.annotations
+```
+
+```bash
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+```
 
 ## 9. Microservice intercommunication inside same namespace via k8s services
 The 'publish'-application invokes the 'consumer'-application via REST-request.
@@ -744,7 +771,7 @@ By default ArgoCD uses the server pod name as the default password for the admin
 # bcrypt(password)=$2a$10$y9GU.bGraMgJ4vXtNqix/.RGV0uh6psoY8aidrtMoAp0TSODlvcPy
 # Note: namespace name.
 #       Create 'passwordMtime' with command 'echo $(date +%FT%T%Z)'.
-kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "$2a$10$y9GU.bGraMgJ4vXtNqix/.RGV0uh6psoY8aidrtMoAp0TSODlvcPy","admin.passwordMtime": "2021-04-05T12:05:05"}}'
+kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "$2a$10$y9GU.bGraMgJ4vXtNqix/.RGV0uh6psoY8aidrtMoAp0TSODlvcPy","admin.passwordMtime":"2021-04-05T12:05:05"}}'
 
 # This command is not running on windows.
 kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "$2a$10$y9GU.bGraMgJ4vXtNqix/.RGV0uh6psoY8aidrtMoAp0TSODlvcPy,"admin.passwordMtime": "$(date +%FT%T%Z)"}}'
@@ -1097,7 +1124,7 @@ One of the things that will be needed to run Tekton locally is how it will be in
 Run the following:
 
 ```bash
-minikube start --vm-driver=virtualbox --cpus 3 --memory 10240 --disk-size=25GB --insecure-registry=registry.kube-system.svc.cluster.local:80
+minikube start --vm-driver=virtualbox --cpus 3 --memory 10240 --disk-size=30GB --insecure-registry=registry.kube-system.svc.cluster.local:80
 
 minikube addons enable registry
 ```
@@ -1118,11 +1145,20 @@ This will make an insecure registry available within the cluster at `registry.ku
 https://github.com/tektoncd/pipeline/releases
 
 # Install
-kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.23.0/release.yaml
+kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml  # Deploy pipelines
+kubectl apply -f https://storage.googleapis.com/tekton-releases/triggers/latest/release.yaml  # Deploy triggers
+
+# Check installation
+kubectl get svc,deploy --namespace tekton-pipelines --selector=app.kubernetes.io/part-of=tekton-pipelines
+
+# This command will create a tekton-pipelines namespace, as well as other resources to finalize the Tekton installation. 
+# With that namespace in mind, easily track the progress of the installation using the command below:
+
+kubectl apply -f https://storage.googleapis.com/tekton-releases/dashboard/latest/tekton-dashboard-release.yaml  # Deploy dashboard
+
+# Check installation
+kubectl get svc,deploy -n tekton-pipelines --selector=app=tekton-dashboard
 ```
-This command will create a tekton-pipelines namespace, as well as other resources to finalize the Tekton installation. With that namespace in mind, easily track the progress of the installation using the command below:
-
-
 
 ```bash
 kubectl get pods --namespace tekton-pipelines --watch
@@ -1132,11 +1168,80 @@ kubectl get pods --namespace tekton-pipelines --watch
 ```bash
 # Get tekton cli.
 https://github.com/tektoncd/cli/releases
+
+# or with chocolatery 
+choco install tektoncd-cli --confirm
+
+# Using the TKN CLI
+# Start a task with name hello. 'name' = kind/Task/metadata/name: hello
+tkn task start --showlog hello
+
+# Start a task with parameter 'namespace=Bomc hello' setting 
+# and the rest with default values.
+tkn task start <taskname> --showlog -p namespace=Bomc hello
+
+# Start a pipeline with name myPipeline
+tkn pipeline start myPipeline --showlog
+
+# Get the tasks
+tkn tasks list
+# or
+tkn t ls 
+
+# Delete tasks
+tkn tasks delete <taskname>
+tkn t delete <taskname> 
+
+# Describe tasks
+tkn tasks describe <taskname>
+tkn t describe <taskname> 
+
+# Tasks logs
+tkn task logs -f <task name>
+tkn taskrun logs -L -f
+# or
+tkn t logs -f <task name>
+
+# Get the Taskrun and check the status
+tkn taskrun list
+# or
+tkn tr ls
+
+# Delete taskrun
+tkn taskrun delete <taskrun name>
+# or
+tkn tr delete <taskrun name>
+
+# Get the Pipeline
+tkn pipeline list
+# or
+tkn p ls
+
+# Delete Pipeline
+tkn pipeline delete <Pipeline name>
+# or
+tkn p delete <Pipeline name>  
+
+# Pipeline Logs
+tkn pipeline logs -f <pipline name>
+# or
+tkn p logs -f <pipline name>
+
+# Describe pipline
+tkn pipline describe <pipline>
+tkn p describe <pipline> 
+
+# Start the build task
+tkn task start <taskname>
 ```
 
-### 17.4 Tekton dashboard
+### 17.4 Tekton dashboard / Port Forwarding
 ```bash
+# Port forwarding
 kubectl --namespace tekton-pipelines port-forward svc/tekton-dashboard 9097:9097
+
+# The Dashboard is available in the browser at 
+http://localhost:9097
 ```
 
 Browse http://localhost:9097 to access your Dashboard.
@@ -1202,28 +1307,3 @@ https://medium.com/@datawire/building-ambassador-an-open-source-api-gateway-on-k
 kubectl wait --for=condition=available deployment -l "app.kubernetes.io/name=argocd-server" -n argocd --timeout=300s deployment.apps/argocd-server condition met
 
 
-argocd-server-58bfc7c47d-q7ln8
-
-kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "$2y$12$BrauwQfX7Hr9rEjJ00h00eORLq6ixbnooC6sVpC1qcffRk4q5swPC","admin.passwordMtime": "'$(date +%FT%T%Z)'" }}'
-
-$2y$12$BrauwQfX7Hr9rEjJ00h00eORLq6ixbnooC6sVpC1qcffRk4q5swPC
-
-kubectl -n argocd get secret argocd-secret -o jsonpath='{.data.admin\.password}' | base64 -d
-
-
-kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "bomc"}}'
-
-
-$2a$10$lKNck1C410FVQAmM.JCEauvLfbPODueTDDBTGg4BjA3uX3EI52zo6
-
-
-
-2634
-        # bomc: Add insecure and argocd as rootpath
-        #- --insecure
-        - --rootpath
-        - /argocd
-
-kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "$2a$10$y9GU.bGraMgJ4vXtNqix/.RGV0uh6psoY8aidrtMoAp0TSODlvcPy"}}'
-kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "$2a$10$y9GU.bGraMgJ4vXtNqix/.RGV0uh6psoY8aidrtMoAp0TSODlvcPy,"admin.passwordMtime": "$(date +%FT%T%Z)"}}'
-kubectl -n argocd patch secret argocd-secret -p '{"stringData": {"admin.password": "$2a$10$y9GU.bGraMgJ4vXtNqix/.RGV0uh6psoY8aidrtMoAp0TSODlvcPy","admin.passwordMtime": "2021-03-29T12:05:05"}}'
